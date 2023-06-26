@@ -1,0 +1,162 @@
+import numpy as np
+from scipy.special import expit
+import pandas as pd
+from sklearn.model_selection import train_test_split
+from sklearn.preprocessing import StandardScaler
+#高斯噪声函数
+def gaussian_noise(scale, size):
+    """
+    生成服从高斯分布的噪声
+
+    :param scale: float，高斯分布的标准差
+    :param size: tuple，噪声的形状
+    :return: numpy.ndarray，形状为 size 的噪声
+    """
+    noise = np.random.normal(scale=scale, size=size)
+    return noise
+
+#指数噪声函数
+def exponential_noise(scale, size):
+    """
+    生成服从指数分布的噪声
+
+    :param scale: float，指数分布的尺度参数
+    :param size: tuple，噪声的形状
+    :return: numpy.ndarray，形状为 size 的噪声
+    """
+    u = np.random.uniform(0, 1, size)
+    noise = - scale * np.log(1 - u)
+    return noise
+
+#拉普拉斯噪声函数
+def laplace_noise(scale, size):
+    """
+    生成服从拉普拉斯分布的噪声
+
+    :param scale: float，拉普拉斯分布的尺度参数
+    :param size: tuple，噪声的形状
+    :return: numpy.ndarray，形状为 size 的噪声
+    """
+    u = np.random.uniform(-0.5, 0.5, size)
+    noise = -np.sign(u) * scale * np.log(1 - 2 * np.abs(u))
+    return noise
+
+
+class LogisticRegressionDP:
+    def __init__(self, epsilon=1.0, max_iter=1000, lr=0.01, seed=None):
+        """
+        差分隐私逻辑回归算法初始化函数
+
+        :param epsilon: float，差分隐私参数，用于控制隐私保护的强度
+        :param max_iter: int，梯度下降的最大迭代次数
+        :param lr: float，梯度下降的学习率
+        :param seed: int，随机数生成器的种子，用于可重复性
+        """
+        self.epsilon = epsilon
+        self.max_iter = max_iter
+        self.lr = lr
+        self.seed = seed
+        self.weights = None
+
+    def fit(self, X, y):
+        """
+        训练差分隐私逻辑回归模型
+
+        :param X: numpy.ndarray，形状为 (n_samples, n_features) 的训练数据
+        :param y: numpy.ndarray，形状为 (n_samples,) 的训练标签
+        """
+        if self.seed:
+            np.random.seed(self.seed)
+
+        # 向训练数据添加拉普拉斯噪声，以实现差分隐私
+        #X_noisy = X + laplace_noise(scale=1.0/self.epsilon, size=X.shape)#0.41,0.59---0.720
+        # 向训练数据添加指数噪声，以实现差分隐私
+        #X_noisy = X + exponential_noise(scale=1.0/self.epsilon, size=X.shape)#0.44,0.56---0.508
+        # 向训练数据添加高斯噪声，以实现差分隐私
+        X_noisy = X + gaussian_noise(scale=self.epsilon, size=X.shape)#0.38,0.62---0.72
+
+
+        # 随机初始化模型权重
+        self.weights = np.random.rand(X.shape[1])
+
+        # 使用梯度下降算法优化模型权重
+        for i in range(self.max_iter):
+            # 将线性输出转换为概率，并计算梯度
+            y_pred = expit(X_noisy.dot(self.weights))
+            gradient = X_noisy.T.dot(y_pred - y) / len(y)
+
+            # 更新模型权重
+            self.weights -= self.lr * gradient
+
+    def predict(self, X):
+        """
+        使用训练好的差分隐私逻辑回归模型进行预测
+
+        :param X: numpy.ndarray，形状为 (n_samples, n_features) 的测试数据
+        :return: numpy.ndarray，形状为 (n_samples,) 的预测结果
+        """
+        # 计算测试数据的概率，并进行二分类
+        y_pred = expit(X.dot(self.weights))
+        return (y_pred >= 0.5).astype(int)
+
+
+
+# 加载AirQuality数据集
+df = pd.read_csv(r"C:\Users\asus\Desktop\大三下\网安\网安第二轮\AirQualityUCI.csv",encoding='utf-8', sep=',', decimal='.', na_values=-200)
+# 删除包含缺失值的行
+#print(df.isnull().sum())
+df.dropna(inplace=True)
+
+# 将日期和时间列合并为单独的时间戳列，并删除原始列
+df['datetime'] = pd.to_datetime(df['Date'])+pd.TimedeltaIndex(df['Time'])
+df.drop(['Date','Time'], axis=1, inplace=True)
+
+# 将时间戳列设置为索引，并按照时间排序
+df.set_index('datetime', inplace=True)
+df.sort_index(inplace=True)
+#print(df)
+# 将 CO(GT) 列转换为二元标签，大于 6.0 为异常值
+df['label'] = (df['CO(GT)'] > 6.0).astype(int)
+#print(df['label'])
+df.drop(['CO(GT)'], axis=1, inplace=True)
+
+# 将其他异常值替换为 NaN
+df[df == -200] = np.nan
+
+# 将特征和标签分开
+X = df.drop(['label'], axis=1).values
+y = df['label'].values
+# print(X)
+# print(y)
+# 将数据集分成训练集和测试集
+# flag= 1 
+
+# while(flag <100):
+#     # test_size=flag+test_size
+#     # train_size=train_size-flag
+    
+    # 拉普拉斯
+#X_train, X_test, y_train, y_test = train_test_split(X, y,test_size=0.41,train_size=0.59, random_state=42)
+# 指数
+#X_train, X_test, y_train, y_test = train_test_split(X, y,test_size=0.44,train_size=0.56, random_state=42)
+# 高斯
+X_train, X_test, y_train, y_test = train_test_split(X, y,test_size=0.38,train_size=0.62, random_state=42)
+# print(test_size+flag)
+# print(train_size - flag)
+# print(flag)
+# flag+=1
+
+# 对训练集进行标准化
+scaler = StandardScaler()
+X_train = scaler.fit_transform(X_train)
+X_test = scaler.transform(X_test)
+
+# 创建差分隐私逻辑回归模型，并训练模型
+dp_lr = LogisticRegressionDP(epsilon=1.0, max_iter=1000, lr=0.01, seed=42)
+dp_lr.fit(X_train, y_train)
+
+# 使用测试集进行预测，并计算准确率
+y_pred = dp_lr.predict(X_test)
+accuracy = np.mean(y_pred == y_test)
+print('Accuracy:', accuracy)
+
