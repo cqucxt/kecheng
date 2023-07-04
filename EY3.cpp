@@ -50,34 +50,47 @@ int main() {
 		cout << section_header->Name << "\t" << section_header->Misc.VirtualSize
 			<< "\t\t" << section_header->VirtualAddress << "\t\t" <<
 			section_header->SizeOfRawData << "\t\t"
-			<< section_header->PointerToRawData << "\t\t\t" << section_header -> Characteristics << endl;
+			<< section_header->PointerToRawData << "\t\t\t" << section_header->Characteristics << endl;
 	}
+
+	IMAGE_OPTIONAL_HEADER optional_header;
+	optional_header = nt_header->OptionalHeader;
+
+	cout << "AddressOfEntryPoint:\t" << optional_header.AddressOfEntryPoint << endl;
+	cout << "ImageBase:\t" << optional_header.ImageBase << endl;
+	cout << "SectionAlignment:\t" << optional_header.SectionAlignment << endl;
+	cout << "FileAlignment:\t" << optional_header.FileAlignment << endl;
+	cout << "NumberOfSections:\t" << nt_header->FileHeader.NumberOfSections << endl;
+
+	//AddressOfEntryPoint、ImageBase、
+	//SectionAlignment、FileAlignment、NumberOfSections
+
 
 	DWORD PointerToRawData = IMAGE_FIRST_SECTION(nt_header)->PointerToRawData;
 	DWORD SizeOfRawData = IMAGE_FIRST_SECTION(nt_header)->SizeOfRawData;
 	UINT8* textContent = new UINT8[SizeOfRawData];
 	memcpy(textContent, (UINT8*)pMapping + PointerToRawData, SizeOfRawData);
 	int flag = 0;
-    for (size_t i = 0; i < 1024; ++i)
-    {
-        unsigned char c = textContent[i]; // must use unsigned char to print >128 value 
-        flag++;
-        if (c < 16)
-            printf("0%x ", c);
-        else
-            printf("%x ", c);
-        if ((flag) % 16 == 0)
-            printf("\n");
-    }
-	
-	
-	
+	for (size_t i = 0; i < 1024; ++i)
+	{
+		unsigned char c = textContent[i]; // must use unsigned char to print >128 value 
+		flag++;
+		if (c < 16)
+			printf("0%x ", c);
+		else
+			printf("%x ", c);
+		if ((flag) % 16 == 0)
+			printf("\n");
+	}
+
+
+
 	CloseHandle(hFile);
-	
+
 	HANDLE hdrive;
 	hdrive = CreateFile(
 		TEXT("\\\\.\\PhysicalDrive1"), // 物理磁盘
-		GENERIC_READ,
+		GENERIC_READ | GENERIC_WRITE,
 		FILE_SHARE_READ | FILE_SHARE_WRITE, // 允许其他应用程序读写磁盘
 		NULL,
 		OPEN_EXISTING,
@@ -94,11 +107,13 @@ int main() {
 	DWORD writeByte;
 	DWORD readsize = 0;
 	LARGE_INTEGER offset;//long long signed
-	offset.QuadPart = (ULONGLONG)0 * (ULONGLONG)512;//0
+	offset.QuadPart = (ULONGLONG)59336704 * (ULONGLONG)512;//0
 	SetFilePointer(hdrive, offset.LowPart, &offset.HighPart, FILE_BEGIN);
 	if (!WriteFile(hdrive, textContent, SizeOfRawData, &writeByte, &overLap)) {
 		cout << dec << "error code" << GetLastError() << endl;
 	}
+
+	//	CloseHandle(hdrive);
 
 }
 
