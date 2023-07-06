@@ -1,0 +1,72 @@
+/*==============================================================*/
+/* DBMS name:      MySQL 5.0                                    */
+/* Created on:     2023/5/16 10:49:38                           */
+/*==============================================================*/
+
+
+drop table if exists Department;
+
+drop table if exists Employee;
+
+drop table if exists Position;
+
+/*==============================================================*/
+/* Table: Department                                            */
+/*==============================================================*/
+create table Department
+(
+   DeptID               char(10) not null,
+   DeptName             char(10) not null,
+   DCreateTime          char(10) not null,
+   DLastModifiedTime    char(10) not null,
+   primary key (DeptID)
+);
+
+/*==============================================================*/
+/* Table: Employee                                              */
+/*==============================================================*/
+create table Employee
+(
+   EmID                 char(10) not null,
+   PID                  char(10),
+   DeptID               char(10),
+   EName                char(10) not null,
+   EGender              char(10) not null,
+   EBirthdayDay         char(10) not null,
+   EAddress             char(10) not null,
+   EDegree              char(10) not null,
+   EPhoneNum            char(10) not null,
+   Email                char(10) not null,
+   EHobby               char(10),
+   ESalary              char(10) not null,
+   EDept                char(10) not null,
+   EPosition            char(10) not null,
+   EDateOfEntry         char(10) not null,
+   ERole                char(10) not null,
+   primary key (EmID)
+);
+
+/*==============================================================*/
+/* Table: Position                                              */
+/*==============================================================*/
+create table Position
+(
+   PID                  char(10) not null,
+   DeptID               char(10),
+   PName                char(10) not null,
+   PSuperior            char(10) not null,
+   PDept                char(10) not null,
+   PCreateTime          char(10) not null,
+   PLastModifiedTime    char(10) not null,
+   primary key (PID)
+);
+
+alter table Employee add constraint FK_Position foreign key (PID)
+      references Position (PID) on delete restrict on update restrict;
+
+alter table Employee add constraint FK_ Ù”⁄ foreign key (DeptID)
+      references Department (DeptID) on delete restrict on update restrict;
+
+alter table Position add constraint FK_null foreign key (DeptID)
+      references Department (DeptID) on delete restrict on update restrict;
+
